@@ -29,7 +29,9 @@ static void *create_heap(size_t pages) {
         fprintf(stderr, "Failed to allocate memory: %s\n", strerror(errno));
     }
     heap = ptr;
-    memheader_init(heap + 0, sizeof(struct memheader));
+
+    // We use the size 0 because the main header should never be overwritten.
+    memheader_init(heap + 0, 0);
     memheader_init(heap + 1, bytes - sizeof(struct memheader));
     heap->next_header = heap + 1;
     heap_size = bytes;
