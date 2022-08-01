@@ -29,7 +29,7 @@ static void *create_heap(size_t pages) {
         fprintf(stderr, "Failed to allocate memory: %s\n", strerror(errno));
     }
     heap = ptr;
-    memheader_init(heap + 0, 0);
+    memheader_init(heap + 0, sizeof(struct memheader));
     memheader_init(heap + 1, bytes - sizeof(struct memheader));
     heap->next_header = heap + 1;
     heap_size = bytes;
@@ -37,6 +37,7 @@ static void *create_heap(size_t pages) {
     return (void *)ptr;
 }
 
+// TODO: Add an align: bool argument which aligns the addresses. (We also need to change memheader_init to align)
 static void split_memheader(struct memheader *split, size_t sz) {
     assert(split->size > sz + sizeof(struct memheader));
     memheader_init(split + sz, split->size - sz);
@@ -114,9 +115,26 @@ void DF_free(void *ptr, const size_t n_bytes) {
 }
 
 int main() {
-    printf("Heap: %p\n", create_heap(1));
-    char *str = DF_allocate(4 * sizeof(char));
-    strcpy(str, "abc");
-    printf("string: '%s'\n", str);
-    DF_free(str, 4 * sizeof(char));
+    create_heap(3);
+    char* ptrs[100];
+    for (int i = 0; i < 100; i++) {
+        char *str = DF_allocate(6 * sizeof(char));
+        strcpy(str, "hello");
+	ptrs[i] = str;
+    }
+
+    for (int i = 0; i < 100; i += 2) {
+	DF_free(ptrs[i], 6 * sizeof(char));
+    }
+
+    for (int i = 0; i < 100; i += 2) {
+	char* str = DF_allocate(4 * sizeof(char));
+	strcpy(str, "abc");
+	ptrs[i] = str;
+    }
+
+    // Full deallocation
+    for (int i = 0; i < 100; i++) {
+	DF_free(ptrs[i], ((i % 2 == 0) ? 4 : 6) * sizeof(char));
+    }
 }
